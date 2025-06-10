@@ -1,49 +1,34 @@
 pipeline {
-    agent any // You can specify a specific agent label if needed, e.g., agent { label 'terraform-agent' }
-
-
+    agent any // Runs on any available agent; specify a label if necessary
+    tools {
+        terraform 'terraform' // Ensure Terraform is configured under "Manage Jenkins > Global Tool Configuration"
+    }
     stages {
         stage('Checkout Code') {
             steps {
-                // Using your specified Git URL and credential ID
-                git branch: 'main', credentialsId: 'github-tocken', url: 'https://github.com/Shirisha95-palla/terraform-hub.git'
-                // IMPORTANT: Ensure 'main' is the correct branch name. Change to 'master' if needed.
-                // The 'github-manikiran7-pat' credential must be configured in Jenkins Credentials.
+                git branch: 'main', credentialsId: 'terraform-token', url: 'https://github.com/Shirisha95-palla/terraform-hub.git'
             }
         }
-
         stage('Terraform Init') {
             steps {
-                script {
-                    sh 'terraform init'
-                }
+                sh 'terraform init'
             }
         }
-
         stage('Terraform Plan') {
             steps {
-                script {
-                    sh 'terraform plan -out=tfplan'
-                }
+                sh 'terraform plan -out=tfplan'
             }
         }
-
-        stage('Terraform Apply (Manual Approval)') {
+        stage('Terraform Apply') {
             steps {
-                input message: 'Proceed with Terraform Apply for local_file?', ok: 'Apply'
-                script {
-                    sh 'terraform apply -auto-approve tfplan'
-                }
+                input message: 'Proceed with Terraform Apply?', ok: 'Apply'
+                sh 'terraform apply tfplan'
             }
         }
-
-        // Optional: Stage to destroy the resource
-        stage('Terraform Destroy (Manual Approval)') {
+        stage('Verify File Creation') {
             steps {
-                input message: 'DO YOU REALLY WANT TO DESTROY THE LOCAL FILE?', ok: 'Destroy'
-                script {
-                    sh 'terraform destroy -auto-approve'
-                }
+                sh 'ls -l $WORKSPACE/pets.txt || echo "File not found!"'
+                sh 'cat $WORKSPACE/pets.txt || echo "No content!"'
             }
         }
     }
